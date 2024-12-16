@@ -52,7 +52,6 @@ resource "aws_iam_user_policy_attachment" "tf_backend" {
   policy_arn = aws_iam_policy.tf_backend.arn
 }
 
-
 #########################
 # Policy for ECR access #
 #########################
@@ -90,7 +89,6 @@ resource "aws_iam_user_policy_attachment" "ecr" {
   user       = aws_iam_user.cd.name
   policy_arn = aws_iam_policy.ecr.arn
 }
-
 
 #########################
 # Policy for EC2 access #
@@ -172,6 +170,17 @@ data "aws_iam_policy_document" "rds" {
     ]
     resources = ["*"]
   }
+  // New statement for creating a service-linked role
+  statement {
+    effect = "Allow"
+    actions = ["iam:CreateServiceLinkedRole"]
+    resources = ["arn:aws:iam::*:role/aws-service-role/custom.rds.amazonaws.com/AmazonRDSBetaServiceRolePolicy"]
+    condition {
+      test     = "StringLike"
+      variable = "iam:AWSServiceName"
+      values   = ["custom.rds.amazonaws.com"]
+    }
+  }
 }
 
 resource "aws_iam_policy" "rds" {
@@ -184,4 +193,3 @@ resource "aws_iam_user_policy_attachment" "rds" {
   user       = aws_iam_user.cd.name
   policy_arn = aws_iam_policy.rds.arn
 }
-
