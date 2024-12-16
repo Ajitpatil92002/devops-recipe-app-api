@@ -170,17 +170,6 @@ data "aws_iam_policy_document" "rds" {
     ]
     resources = ["*"]
   }
-  // New statement for creating a service-linked role for RDS
-  statement {
-    effect    = "Allow"
-    actions   = ["iam:CreateServiceLinkedRole"]
-    resources = ["arn:aws:iam::*:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS"]
-    condition {
-      test     = "StringLike"
-      variable = "iam:AWSServiceName"
-      values   = ["rds.amazonaws.com"]
-    }
-  }
 }
 
 resource "aws_iam_policy" "rds" {
