@@ -52,54 +52,54 @@ resource "aws_ecs_task_definition" "api" {
   execution_role_arn       = aws_iam_role.task_execution_role.arn
   task_role_arn            = aws_iam_role.app_task.arn
 
-   container_definitions = jsonencode(
-    [   {
-        name              = "api"
-        image             = var.ecr_app_image
-        essential         = true
-        memoryReservation = 256
-        user              = "django-user"
-        environment = [
-          {
-            name  = "DJANGO_SECRET_KEY"
-            value = var.django_secret_key
-          },
-          {
-            name  = "DB_HOST"
-            value = aws_db_instance.main.address
-          },
-          {
-            name  = "DB_NAME"
-            value = aws_db_instance.main.db_name
-          },
-          {
-            name  = "DB_USER"
-            value = aws_db_instance.main.username
-          },
-          {
-            name  = "DB_PASS"
-            value = aws_db_instance.main.password
-          },
-          {
-            name  = "ALLOWED_HOSTS"
-            value = "*"
-          }
-        ]
-        mountPoints = [
-          {
-            readOnly      = false
-            containerPath = "/vol/web/static"
-            sourceVolume  = "static"
-          }
-        ],
-        logConfiguration = {
-          logDriver = "awslogs"
-          options = {
-            awslogs-group         = aws_cloudwatch_log_group.ecs_task_logs.name
-            awslogs-region        = data.aws_region.current.name
-            awslogs-stream-prefix = "api"
-          }
+  container_definitions = jsonencode(
+    [{
+      name              = "api"
+      image             = var.ecr_app_image
+      essential         = true
+      memoryReservation = 256
+      user              = "django-user"
+      environment = [
+        {
+          name  = "DJANGO_SECRET_KEY"
+          value = var.django_secret_key
+        },
+        {
+          name  = "DB_HOST"
+          value = aws_db_instance.main.address
+        },
+        {
+          name  = "DB_NAME"
+          value = aws_db_instance.main.db_name
+        },
+        {
+          name  = "DB_USER"
+          value = aws_db_instance.main.username
+        },
+        {
+          name  = "DB_PASS"
+          value = aws_db_instance.main.password
+        },
+        {
+          name  = "ALLOWED_HOSTS"
+          value = "*"
         }
+      ]
+      mountPoints = [
+        {
+          readOnly      = false
+          containerPath = "/vol/web/static"
+          sourceVolume  = "static"
+        }
+      ],
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.ecs_task_logs.name
+          awslogs-region        = data.aws_region.current.name
+          awslogs-stream-prefix = "api"
+        }
+      }
       },
       {
         name              = "proxy"
@@ -178,5 +178,26 @@ resource "aws_security_group" "ecs_service" {
     to_port     = 8000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_ecs_service" "api" {
+  name                   = "${local.prefix}-api"
+  cluster                = aws_ecs_cluster.main.name
+  task_definition        = aws_ecs_task_definition.api.family
+  desired_count          = 1
+  launch_type            = "FARGATE"
+  platform_version       = "1.4.0"
+  enable_execute_command = true
+
+  network_configuration {
+    assign_public_ip = true
+
+    subnets = [
+      aws_subnet.public_a.id,
+      aws_subnet.public_b.id
+    ]
+
+    security_groups = [aws_security_group.ecs_service.id]
   }
 }
